@@ -1,36 +1,29 @@
-# Malaysia Dividend Hub — Bursa Malaysia only
+# Malaysia Dividend Hub — live Bursa lookup
 
-A GitHub Pages dividend tracker for **Bursa Malaysia stocks, EPF Conventional/Shariah, ASM 1, ASM 2 Wawasan and ASM 3**, with an Apple Calendar subscription.
+No historical dividend JSON database. The browser fetches the Cloudflare Worker API every time the user clicks **Fetch live dividends**. The Worker requests Yahoo Finance chart dividend events online. Holdings and Worker URL are saved only in the user's own browser localStorage (no server-side storage). This is **not official Bursa filing data** and may fail due to provider restrictions.
 
-## Deploy to `pyhor/malaysia-dividend-hub`
+## 1. Deploy the Worker (free Cloudflare account required)
 
-1. Upload **the contents of this ZIP's `dividend-hub` folder** to the **root** of your existing GitHub repository on branch `main`. Keep the folders `data/`, `scripts/`, `site/` and `.github/workflows/`.
-2. Delete the old `.github/workflows/publish.yml` if present. Keep **only** `.github/workflows/main.yml` to avoid duplicate deployments.
-3. Under **Settings → Pages**, set Source to **GitHub Actions**.
-4. Open **Actions → Publish Malaysia Dividend Hub → Run workflow**.
-5. After a successful deploy, visit `https://pyhor.github.io/malaysia-dividend-hub/` and subscribe to `https://pyhor.github.io/malaysia-dividend-hub/dividends.ics`.
+1. Go to https://dash.cloudflare.com/ → Workers & Pages → Create → Worker.
+2. Name it `malaysia-dividend-live` (or any available name).
+3. Edit the Worker code and paste **all contents** of `worker/index.js`; save and deploy.
+4. Copy the `https://...workers.dev` URL. Test `/api/dividends?ticker=1155` in your browser. The Worker must return JSON; if the upstream provider blocks requests, choose a licensed financial API provider instead. The Worker does not guarantee Yahoo availability.
 
-The workflow runs on pushes to main, new/edited GitHub issues, and daily (approximately 09:17 Malaysia time). It uses Python standard library only; **no `requirements.txt` or pip install needed**.
+Alternatively use Wrangler CLI from the `worker/` directory: `npx wrangler deploy` (after authenticating).
 
-## Add stocks
+## 2. Deploy GitHub Pages
 
-- On the website choose **Bursa Malaysia stock**, enter e.g. `1155.KL` or `Maybank`, and enter shares owned. Holdings stay in browser localStorage.
-- The project initially tracks a few common stocks listed in `data/stocks.json`.
-- For a new stock, the website shows **Request tracking**. Click it, submit the prefilled public GitHub issue titled `Track stock: 1234.KL`. GitHub Actions reads the issue titles and automatically includes those tickers in future builds. No dividend dates/rates are entered by users. **Issues are public, so do not put private holdings in an issue.**
-- The name-to-code dictionary is limited to common companies. For other stocks use the Bursa numeric ticker code; it cannot reliably identify arbitrary company names offline.
+Copy `site/index.html` and `.github/workflows/main.yml` into your existing `pyhor/malaysia-dividend-hub` repository, replacing previous files. Keep GitHub Pages source = **GitHub Actions**. The workflow publishes `site/` directly, without Python or requirements.txt. Remove old scheduled database build workflows to avoid conflict.
 
-## Data and limitations
+## 3. Use
 
-- Stock ex-dividend dates and dividend amounts are retrieved from the Yahoo Finance chart dividend-event endpoint at build time, covering up to 5 years. This is **third-party market data, not official Bursa announcements**, and can be unavailable, delayed or incomplete. The source link appears in records and event Notes. No payment or announcement date is invented when unavailable.
-- `data/verified_events.json` is a curated database for official EPF/ASM announcements. Only records with verified source dates/rates should be added. At present it includes two EPF 2025 records; **ASM data is not automatically scraped yet**. ASM funds are supported in the portfolio UI but will have no records until curated official records are supplied.
-- This is a **public, shared subscription feed**, not a personalized subscription. The **Download my personal calendar** option adds estimates to Notes but is a static snapshot. A private, automatically updating personalized subscription needs authenticated hosting/backend.
-- The website calculates an **illustrative** payout based on today's entered shares/units. Historical entitlement, ex-date eligibility, EPF daily balances and actual payments may differ. A stock's dividend amount in sen is **not** the dividend yield percentage.
-- If a stock fetch fails, the build still succeeds and may show no stock records. Check GitHub Actions logs and issuer/Bursa announcements.
+Visit https://pyhor.github.io/malaysia-dividend-hub/; paste your Worker URL and click **Use this API**. Enter Bursa ticker and share count. Click **Fetch live dividends**. Click **Copy live Apple Calendar URL**, then Apple Calendar → File → New Calendar Subscription. This URL exposes ticker symbols, not share counts; the calendar notes therefore show sen/share but **not personal RM estimates**. Anyone who knows the URL can see the selected ticker symbols.
 
-## Files
+## Limitations
 
-- `site/index.html`: frontend website
-- `scripts/build.py`: fetch dividend events, produce `site/records.json` and `site/dividends.ics`
-- `data/stocks.json`: initial tracked Bursa symbols
-- `data/verified_events.json`: manually curated official fund records
-- `.github/workflows/main.yml`: scheduled and issue-triggered Pages deployment
+- Live market-data source supplies ex-dates and dividend amounts, not guaranteed announcement or payment dates. Rates/yields are not invented.
+- Calendar refresh depends on Apple Calendar's subscription schedule; provider errors may temporarily prevent updates.
+- EPF and ASM do **not** have a reliable live source integrated here. They are intentionally excluded from the live feed until official data ingestion is implemented.
+- Only numeric Bursa tickers (4–5 digits) supported, e.g. `1155`, `1295`. No stock-name search in this version.
+- Data is fetched on demand; no historical dividends are stored in GitHub or Worker. Local browser **holdings** are stored for convenience, not dividend data.
+- This is an independently hosted API; GitHub Pages alone cannot proxy external financial data or reliably bypass CORS.
