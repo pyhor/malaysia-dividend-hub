@@ -2,11 +2,12 @@
 name: Publish Malaysia Dividend Hub
 
 on:
-  workflow_dispatch:
   push:
     branches:
       - main
+  workflow_dispatch:
   schedule:
+    # Daily at 9:17 AM Malaysia time (UTC+8)
     - cron: "17 1 * * *"
 
 permissions:
@@ -15,12 +16,13 @@ permissions:
   id-token: write
 
 concurrency:
-  group: pages
+  group: github-pages
   cancel-in-progress: false
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -34,10 +36,7 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install dependencies
-        run: python -m pip install -r requirements.txt
-
-      - name: Build dividend website
+      - name: Build dividend calendar
         run: python scripts/build.py
 
       - name: Verify website files
