@@ -6,9 +6,6 @@ on:
     branches:
       - main
   workflow_dispatch:
-  schedule:
-    # Daily at 9:17 AM Malaysia time (UTC+8)
-    - cron: "17 1 * * *"
 
 permissions:
   contents: read
@@ -31,19 +28,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-
-      - name: Build dividend calendar
-        run: python scripts/build.py
-
       - name: Verify website files
         run: |
           ls -lah site/
           test -s site/index.html
-          test -s site/dividends.ics
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
